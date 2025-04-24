@@ -20,43 +20,45 @@ RUN yum install -y epel-release
 RUN curl -o /etc/yum.repos.d/epel.repo https://mirrors.aliyun.com/repo/epel-7.repo
 # RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/epel.repo
 
-# download installers first
-WORKDIR $TMP_DIR
-RUN yum install -y wget tar
-RUN wget https://archives.boost.io/release/1.67.0/source/boost_1_67_0.tar.gz && \
-    tar -zxf boost_1_67_0.tar.gz
-RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protobuf-cpp-3.7.1.tar.gz && \
-    tar -zxf protobuf-cpp-3.7.1.tar.gz
-RUN wget https://cmake.org/files/v3.27/cmake-3.27.9.tar.gz && \
-    tar -zxf cmake-3.27.9.tar.gz
-
 # dev tools
 RUN yum groupinstall -y "Development Tools"
+
+# tar
+RUN yum install -y tar
 
 # boost
 WORKDIR $TMP_DIR
 RUN yum install -y which python2-devel
-RUN cd boost_1_67_0 && \
+RUN curl -LO https://archives.boost.io/release/1.67.0/source/boost_1_67_0.tar.gz && \
+    tar -zxf boost_1_67_0.tar.gz && \
+    cd boost_1_67_0 && \
     ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
-    ./b2 install -j$(nproc)
+    ./b2 install -j$(nproc) && \
+    rm -rf $TMP_DIR
 RUN ln -s /lib/libboost_python27.so /lib/libboost_python.so
 
 # protobuf
 WORKDIR $TMP_DIR
-RUN cd protobuf-3.7.1 && \
+RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protobuf-cpp-3.7.1.tar.gz && \
+    tar -zxf protobuf-cpp-3.7.1.tar.gz && \
+    cd protobuf-3.7.1 && \
     ./autogen.sh && \
     ./configure && \
     make -j$(nproc) && \
     make -j$(nproc) check && \
-    make install
+    make install && \
+    rm -rf $TMP_DIR
 
 # cmake
 WORKDIR $TMP_DIR
 RUN yum install -y openssl-devel
-RUN cd cmake-3.27.9 && \
+RUN curl -LO https://cmake.org/files/v3.27/cmake-3.27.9.tar.gz && \
+    tar -zxf cmake-3.27.9.tar.gz && \
+    cd cmake-3.27.9 && \
     ./bootstrap --parallel=$(nproc) && \
     make -j$(nproc) && \
-    make -j$(nproc) install
+    make -j$(nproc) install && \
+    rm -rf $TMP_DIR
 
 # gcc
 # use "-DCMAKE_CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/g++" for cmake
@@ -75,12 +77,12 @@ RUN yum install -y elfutils-libelf-devel  # -lelf
 RUN yum install -y vim sudo
 
 # cleanup
-RUN rm -rf $TMP_DIR
-RUN yum clean all && rm -rf /var/cache/yum
+# RUN rm -rf $TMP_DIR
+# RUN yum clean all && rm -rf /var/cache/yum
 
 # gosu
 ENV GOSU_VERSION=1.14
-RUN curl -sSL -o /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" \
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" \
     && chmod +x /usr/local/bin/gosu \
     && gosu nobody true
 
