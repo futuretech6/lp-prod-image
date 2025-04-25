@@ -4,12 +4,12 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "Dockerfile"
+      - "Dockerfile*"
       - "entrypoint.sh"
       - ".github/workflows/build-image.yml"
   pull_request:
     paths:
-      - "Dockerfile"
+      - "Dockerfile*"
       - "entrypoint.sh"
       - ".github/workflows/build-image.yml"
 
@@ -31,7 +31,7 @@ jobs:
           docker buildx build \
             --progress=plain \
             --platform linux/amd64 \
-            --tag ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:latest \
-            --file Dockerfile \
+            --tag ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:centos7 \
+            --file Dockerfile.centos7 \
             --push \
             .
