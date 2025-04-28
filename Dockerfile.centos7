@@ -3,6 +3,9 @@ FROM --platform=$BUILDPLATFORM centos:7
 ARG TARGETOS
 ARG TARGETARCH
 
+# add "-l" to enable devtoolset-7
+SHELL ["/bin/bash", "-lc"]
+
 # directory for installing dependencies
 ENV TMP_DIR=/tmp
 
@@ -17,20 +20,37 @@ RUN yum makecache
 # epel mirrors
 RUN yum update -y --skip-broken
 RUN yum install -y epel-release && \
-    yum clean all && \
-    rm -rf /var/cache/yum
+    yum clean all && rm -rf /var/cache/yum
 RUN curl -o /etc/yum.repos.d/epel.repo https://mirrors.aliyun.com/repo/epel-7.repo
 # RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/epel.repo
 
-# dev tools
-RUN yum groupinstall -y "Development Tools" && \
-    yum clean all && \
-    rm -rf /var/cache/yum
+# devtoolset-7
+RUN yum install -y centos-release-scl && \
+    yum clean all && rm -rf /var/cache/yum
+RUN sed -e 's|^mirrorlist=|# mirrorlist=|g' \
+        -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
+        -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo
+RUN yum install -y devtoolset-7 && \
+    yum clean all && rm -rf /var/cache/yum
+RUN echo "source /opt/rh/devtoolset-7/enable" >> /etc/profile.d/devtoolset-7.sh && \
+    chmod +x /etc/profile.d/devtoolset-7.sh
 
 # tar
 RUN yum install -y tar && \
-    yum clean all && \
-    rm -rf /var/cache/yum
+    yum clean all && rm -rf /var/cache/yum
+
+# cmake
+ENV CMAKE_MINOR_VERSION=3.27
+ENV CMAKE_VERSION=3.27.9
+WORKDIR $TMP_DIR
+RUN yum install -y openssl-devel && \
+    yum clean all && rm -rf /var/cache/yum
+RUN curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar -zx && \
+    cd cmake-${CMAKE_VERSION} && \
+    ./bootstrap --parallel=$(nproc) && \
+    make -j$(nproc) && \
+    make -j$(nproc) install && \
+    rm -rf $TMP_DIR
 
 # boost
 # ENV BOOST_VERSION=1.67.0
@@ -39,10 +59,8 @@ ENV BOOST_VERSION=1.53.0
 ENV BOOST_DASHED_VERSION=1_53_0
 WORKDIR $TMP_DIR
 RUN yum install -y which python2-devel zlib-devel bzip2-devel && \
-    yum clean all && \
-    rm -rf /var/cache/yum  # zlib-devel and bzip2-devel is for v1.53.0
-RUN curl -LO https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz && \
-    tar -zxf boost_${BOOST_DASHED_VERSION}.tar.gz && \
+    yum clean all && rm -rf /var/cache/yum  # zlib-devel and bzip2-devel is for v1.53.0
+RUN curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz | tar -zx && \
     cd boost_${BOOST_DASHED_VERSION} && \
     ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
     ./b2 install -j$(nproc) && \
@@ -55,8 +73,9 @@ RUN curl -LO https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${B
 ENV PROTOBUF_VERSION=2.5.0
 ENV PROTOBUF_ZIP=protobuf-2.5.0.tar.gz
 WORKDIR $TMP_DIR
-RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/${PROTOBUF_ZIP} && \
-    tar -zxf ${PROTOBUF_ZIP} && \
+RUN yum install -y autoconf automake libtool && \
+    yum clean all && rm -rf /var/cache/yum
+RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/${PROTOBUF_ZIP} | tar -zx && \
     cd protobuf-${PROTOBUF_VERSION} && \
     ./autogen.sh && \
     ./configure && \
@@ -65,54 +84,20 @@ RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PR
     make install && \
     rm -rf $TMP_DIR
 
-# cmake
-ENV CMAKE_MINOR_VERSION=3.27
-ENV CMAKE_VERSION=3.27.9
-WORKDIR $TMP_DIR
-RUN yum install -y openssl-devel && \
-    yum clean all && \
-    rm -rf /var/cache/yum
-RUN curl -LO https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz && \
-    tar -zxf cmake-${CMAKE_VERSION}.tar.gz && \
-    cd cmake-${CMAKE_VERSION} && \
-    ./bootstrap --parallel=$(nproc) && \
-    make -j$(nproc) && \
-    make -j$(nproc) install && \
-    rm -rf $TMP_DIR
-
-# gcc
-# use "-DCMAKE_CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/g++" for cmake
-# or "source /opt/rh/devtoolset-7/enable" for bash
-RUN yum install -y centos-release-scl && \
-    yum clean all && \
-    rm -rf /var/cache/yum
-RUN sed -e 's|^mirrorlist=|# mirrorlist=|g' \
-        -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
-        -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo
-RUN yum install -y devtoolset-7 && \
-    yum clean all && \
-    rm -rf /var/cache/yum
+# other tools
+RUN yum install -y vim sudo git && \
+    yum clean all && rm -rf /var/cache/yum
 
 # other dependencies
 RUN yum install -y uriparser-devel \
                    elfutils-libelf-devel \
                    gtest-devel && \
-    yum clean all && \
-    rm -rf /var/cache/yum
-
-# other tools
-RUN yum install -y vim sudo && \
-    yum clean all && \
-    rm -rf /var/cache/yum
-
-# cleanup
-# RUN rm -rf $TMP_DIR
-# RUN yum clean all && rm -rf /var/cache/yum
+    yum clean all && rm -rf /var/cache/yum
 
 # gosu
 ENV GOSU_VERSION=1.14
-RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" \
-    && chmod +x /usr/local/bin/gosu \
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}"
+RUN chmod +x /usr/local/bin/gosu \
     && gosu nobody true
 
 # entrypoint
