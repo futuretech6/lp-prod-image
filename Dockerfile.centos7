@@ -21,25 +21,35 @@ RUN yum install -y epel-release && \
 RUN curl -o /etc/yum.repos.d/epel.repo https://mirrors.aliyun.com/repo/epel-7.repo
 # RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/epel.repo
 
-# devtoolset-7
+# scl mirrors for devtoolset
 RUN yum install -y centos-release-scl && \
     yum clean all && rm -rf /var/cache/yum
 RUN sed -e 's|^mirrorlist=|# mirrorlist=|g' \
         -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
         -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo
+
+# devtoolset-7
 RUN yum install -y devtoolset-7 && \
 # dev tools
     yum groupinstall -y "Development Tools" && \
 # tar
     yum install -y tar && \
+# cmake dependencies
+    yum install -y openssl-devel && \
+# boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
+    yum install -y which python2-devel zlib-devel bzip2-devel && \
+# other tools
+    yum install -y vim sudo && \
+# other dependencies
+    yum install -y uriparser-devel \
+                   elfutils-libelf-devel \
+                   gtest-devel && \
     yum clean all && rm -rf /var/cache/yum
 
 # cmake
 ENV CMAKE_MINOR_VERSION=3.27
 ENV CMAKE_VERSION=3.27.9
 WORKDIR $TMP_DIR
-RUN yum install -y openssl-devel && \
-    yum clean all && rm -rf /var/cache/yum
 RUN curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar -zx && \
     cd cmake-${CMAKE_VERSION} && \
     ./bootstrap --parallel=$(nproc) && \
@@ -53,8 +63,6 @@ RUN curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSIO
 ENV BOOST_VERSION=1.53.0
 ENV BOOST_DASHED_VERSION=1_53_0
 WORKDIR $TMP_DIR
-RUN yum install -y which python2-devel zlib-devel bzip2-devel && \
-    yum clean all && rm -rf /var/cache/yum  # zlib-devel and bzip2-devel is for v1.53.0
 RUN curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz | tar -zx && \
     cd boost_${BOOST_DASHED_VERSION} && \
     ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
@@ -77,13 +85,6 @@ RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PRO
     make install && \
     rm -rf $TMP_DIR
 
-# other tools
-RUN yum install -y vim sudo && \
-# other dependencies
-    yum install -y uriparser-devel \
-                   elfutils-libelf-devel \
-                   gtest-devel && \
-    yum clean all && rm -rf /var/cache/yum
 
 # gosu
 ENV GOSU_VERSION=1.14
