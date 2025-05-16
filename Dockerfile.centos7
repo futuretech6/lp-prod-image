@@ -85,7 +85,6 @@ RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PRO
     make install && \
     rm -rf $TMP_DIR
 
-
 # gosu
 ENV GOSU_VERSION=1.14
 RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}"
@@ -96,6 +95,10 @@ RUN chmod +x /usr/local/bin/gosu \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
+
+# other libraries
+RUN yum install -y libpcap-devel && \
+    yum clean all && rm -rf /var/cache/yum
 
 # default command
 WORKDIR $WORKSPACE
