@@ -30,19 +30,24 @@ RUN sed -e 's|^mirrorlist=|# mirrorlist=|g' \
 # devtoolset-7
 RUN yum install -y devtoolset-7 && \
 # dev tools
-    yum groupinstall -y "Development Tools" && \
+    # yum groupinstall -y "Development Tools" && \
+    yum install -y gcc-c++ make && \
 # tar
     yum install -y tar && \
-# cmake dependencies
-    yum install -y openssl-devel && \
+# cmake dependencies, git is for cmake module config
+    yum install -y openssl-devel git && \
 # boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
     yum install -y which python2-devel zlib-devel bzip2-devel && \
+# protobuf dependencies
+    yum install -y libtool && \
 # other tools
     yum install -y vim sudo && \
-# other dependencies
+# other dependencies of lp system
     yum install -y uriparser-devel \
                    elfutils-libelf-devel \
                    gtest-devel && \
+# other dependencies
+    yum install -y libpcap-devel && \
     yum clean all && rm -rf /var/cache/yum
 
 # cmake
@@ -94,10 +99,6 @@ RUN chmod +x /usr/local/bin/gosu \
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
-
-# other libraries
-RUN yum install -y libpcap-devel && \
-    yum clean all && rm -rf /var/cache/yum
 
 # default command
 WORKDIR $WORKSPACE
