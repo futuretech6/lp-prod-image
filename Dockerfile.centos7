@@ -15,7 +15,6 @@ RUN curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Ce
 # RUN yum makecache
 
 # epel mirrors
-RUN yum update -y --skip-broken
 RUN yum install -y epel-release && \
     yum clean all && rm -rf /var/cache/yum
 RUN curl -o /etc/yum.repos.d/epel.repo https://mirrors.aliyun.com/repo/epel-7.repo
