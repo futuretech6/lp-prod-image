@@ -1,19 +1,27 @@
 #!/bin/bash
 set -e
 
-echo "Current workspace is $WORKSPACE."
+echo "[*] Current workspace is $WORKSPACE."
 
 TARGET_DIR=${WORKSPACE:-/workspace}
 
-HOST_UID=$(stat -c "%u" $TARGET_DIR)
-HOST_GID=$(stat -c "%g" $TARGET_DIR)
-USERGROUP=prod
-USERNAME=prod
+# Check if TARGET_DIR is mounted
+if mountpoint -q "$TARGET_DIR"; then
+    HOST_UID=$(stat -c "%u" $TARGET_DIR)
+    HOST_GID=$(stat -c "%g" $TARGET_DIR)
+    USERGROUP=prod
+    USERNAME=prod
 
-groupadd -g "$HOST_GID" $USERGROUP || true
-useradd -u "$HOST_UID" -g "$HOST_GID" -m -s /bin/bash $USERNAME || true
+    echo "[*] $TARGET_DIR is mounted. Creating user $USERGROUP:$USERNAME."
 
-usermod -aG wheel "$USERNAME"  # "wheel" is the default group for sudoers in CentOS
-echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+    groupadd -g "$HOST_GID" $USERGROUP || true
+    useradd -u "$HOST_UID" -g "$HOST_GID" -m -s /bin/bash $USERNAME || true
 
-exec gosu "$USERNAME" "$@"
+    usermod -aG wheel "$USERNAME"  # "wheel" is the default group for sudoers in CentOS
+    echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+    exec gosu "$USERNAME" "$@"
+else
+    echo "[!] $TARGET_DIR is not mounted. Continuing as root."
+    exec "$@"
+fi
