@@ -11,7 +11,7 @@ USERGROUP=prod
 USERNAME=prod
 
 groupadd -g "$HOST_GID" $USERGROUP || true
-useradd -u "$HOST_UID" -g "$HOST_GID" -M -s /bin/bash $USERNAME || true
+useradd -u "$HOST_UID" -g "$HOST_GID" -m -s /bin/bash $USERNAME || true
 
 usermod -aG wheel "$USERNAME"  # "wheel" is the default group for sudoers in CentOS
 echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
