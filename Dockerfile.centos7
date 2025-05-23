@@ -6,29 +6,56 @@ ARG TARGETARCH
 # directory for installing dependencies
 ENV TMP_DIR=/tmp
 
+# cmake-src
+ENV CMAKE_MINOR_VERSION=3.27
+ENV CMAKE_VERSION=3.27.9
+RUN --mount=type=cache,target=${TMP_DIR} \
+    mkdir -p ${TMP_DIR}/cmake-src && \
+    curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/cmake-src --strip-components=1
+
+# boost-src
+# ENV BOOST_VERSION=1.67.0
+# ENV BOOST_DASHED_VERSION=1_67_0
+ENV BOOST_VERSION=1.53.0
+ENV BOOST_DASHED_VERSION=1_53_0
+RUN --mount=type=cache,target=${TMP_DIR} \
+    mkdir -p ${TMP_DIR}/boost-src && \
+    curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
+
+# protobuf-src
+# ENV PROTOBUF_VERSION=3.7.1
+# ENV PROTOBUF_ZIP=protobuf-cpp-3.7.1.tar.gz
+ENV PROTOBUF_VERSION=2.5.0
+ENV PROTOBUF_ZIP=protobuf-2.5.0.tar.gz
+RUN --mount=type=cache,target=${TMP_DIR} \
+    mkdir -p ${TMP_DIR}/protobuf-src && \
+    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/${PROTOBUF_ZIP} \
+        | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
+# gosu
+ENV GOSU_VERSION=1.14
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true
+
 # default mount directory
 ENV WORKSPACE=/workspace
 
 # centos mirrors
 RUN curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
 # RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/CentOS-Base.repo
-# RUN yum makecache
 
-# epel mirrors
-RUN yum install -y epel-release && \
-    yum clean all && rm -rf /var/cache/yum
-RUN curl -o /etc/yum.repos.d/epel.repo https://mirrors.aliyun.com/repo/epel-7.repo
-# RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/epel.repo
 
+# yum install dependencies
+RUN --mount=type=cache,target=/var/cache/yum \
 # scl mirrors for devtoolset
-RUN yum install -y centos-release-scl && \
-    yum clean all && rm -rf /var/cache/yum
-RUN sed -e 's|^mirrorlist=|# mirrorlist=|g' \
+    yum install -y centos-release-scl && \
+    sed -e 's|^mirrorlist=|# mirrorlist=|g' \
         -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
-        -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo
-
+        -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo && \
 # devtoolset-7
-RUN yum install -y devtoolset-7 && \
+    yum install -y devtoolset-7 && \
 # dev tools
     # yum groupinstall -y "Development Tools" && \
     yum install -y gcc-c++ make && \
@@ -47,53 +74,30 @@ RUN yum install -y devtoolset-7 && \
                    elfutils-libelf-devel \
                    gtest-devel && \
 # other dependencies
-    yum install -y libpcap-devel && \
-    yum clean all && rm -rf /var/cache/yum
+    yum install -y libpcap-devel
 
-# cmake
-ENV CMAKE_MINOR_VERSION=3.27
-ENV CMAKE_VERSION=3.27.9
-WORKDIR $TMP_DIR
-RUN curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz | tar -zx && \
-    cd cmake-${CMAKE_VERSION} && \
+# cmake, git is for cmake module config
+WORKDIR ${TMP_DIR}/cmake-src
+RUN --mount=type=cache,target=${TMP_DIR} \
     ./bootstrap --parallel=$(nproc) && \
     make -j$(nproc) && \
-    make -j$(nproc) install && \
-    rm -rf $TMP_DIR
+    make -j$(nproc) install
 
-# boost
-# ENV BOOST_VERSION=1.67.0
-# ENV BOOST_DASHED_VERSION=1_67_0
-ENV BOOST_VERSION=1.53.0
-ENV BOOST_DASHED_VERSION=1_53_0
-WORKDIR $TMP_DIR
-RUN curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz | tar -zx && \
-    cd boost_${BOOST_DASHED_VERSION} && \
+# boost, zlib-devel and bzip2-devel is for v1.53.0
+WORKDIR ${TMP_DIR}/boost-src
+RUN --mount=type=cache,target=${TMP_DIR} \
     ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
-    ./b2 install -j$(nproc) && \
-    rm -rf $TMP_DIR
-# RUN ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
+    ./b2 install -j$(nproc)
+RUN [ -e /lib/libboost_python.so ] || ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
 
 # protobuf
-# ENV PROTOBUF_VERSION=3.7.1
-# ENV PROTOBUF_ZIP=protobuf-cpp-3.7.1.tar.gz
-ENV PROTOBUF_VERSION=2.5.0
-ENV PROTOBUF_ZIP=protobuf-2.5.0.tar.gz
-WORKDIR $TMP_DIR
-RUN curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/${PROTOBUF_ZIP} | tar -zx && \
-    cd protobuf-${PROTOBUF_VERSION} && \
+WORKDIR ${TMP_DIR}/protobuf-src
+RUN --mount=type=cache,target=${TMP_DIR} \
     ./autogen.sh && \
     ./configure && \
     make -j$(nproc) && \
     make -j$(nproc) check && \
-    make install && \
-    rm -rf $TMP_DIR
-
-# gosu
-ENV GOSU_VERSION=1.14
-RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}"
-RUN chmod +x /usr/local/bin/gosu \
-    && gosu nobody true
+    make install
 
 # entrypoint
 COPY entrypoint.sh /entrypoint.sh
