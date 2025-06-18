@@ -9,12 +9,12 @@ TARGET_DIR=${WORKSPACE:-/workspace}
 if mountpoint -q "$TARGET_DIR"; then
     HOST_UID=$(stat -c "%u" $TARGET_DIR)
     HOST_GID=$(stat -c "%g" $TARGET_DIR)
-    USERGROUP=prod
     USERNAME=prod
+    GROUPNAME=prod
 
-    echo "[*] $TARGET_DIR is mounted. Creating user $USERGROUP:$USERNAME."
+    echo "[*] $TARGET_DIR is mounted. Creating user $GROUPNAME:$USERNAME."
 
-    groupadd -g "$HOST_GID" $USERGROUP || true
+    groupadd -g "$HOST_GID" $GROUPNAME || true
     useradd -u "$HOST_UID" -g "$HOST_GID" -m -s /bin/bash $USERNAME || true
 
     usermod -aG wheel "$USERNAME"  # "wheel" is the default group for sudoers in CentOS
