@@ -42,12 +42,14 @@ RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/downlo
 # yum install dependencies
 RUN --mount=type=cache,target=/var/cache/yum \
 # centos mirrors
-    curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo && \
+    sed -e 's|^mirrorlist=|# mirrorlist=|g' \
+        -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|g' \
+        -i /etc/yum.repos.d/CentOS-*.repo && \
 # scl mirrors for devtoolset
     yum install -y centos-release-scl && \
     sed -e 's|^mirrorlist=|# mirrorlist=|g' \
-        -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://mirrors.aliyun.com|g' \
-        -i /etc/yum.repos.d/CentOS-SCLo-scl*.repo && \
+        -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|g' \
+        -i /etc/yum.repos.d/CentOS-*.repo && \
 # devtoolset-7
     yum install -y devtoolset-7 && \
 # dev tools
@@ -94,8 +96,12 @@ RUN --mount=type=cache,target=${TMP_DIR} \
     make install
 
 # starship
-RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y  && \
-    echo 'eval "$(starship init bash)"' >> /etc/bashrc
+RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y
+RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
+RUN tee -a /etc/bashrc <<"EOF"
+eval "$(starship init bash)"
+export STARSHIP_CONFIG=/etc/starship.toml
+EOF
 
 # entrypoint
 COPY entrypoint.sh /entrypoint.sh
