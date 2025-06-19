@@ -39,16 +39,10 @@ RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/downlo
     chmod +x /usr/local/bin/gosu && \
     gosu nobody true
 
-# default mount directory
-ENV WORKSPACE=/workspace
-
-# centos mirrors
-RUN curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo
-# RUN sed -i 's|http://|https://|g' /etc/yum.repos.d/CentOS-Base.repo
-
-
 # yum install dependencies
 RUN --mount=type=cache,target=/var/cache/yum \
+# centos mirrors
+    curl -o /etc/yum.repos.d/CentOS-Base.repo https://mirrors.aliyun.com/repo/Centos-7.repo && \
 # scl mirrors for devtoolset
     yum install -y centos-release-scl && \
     sed -e 's|^mirrorlist=|# mirrorlist=|g' \
@@ -99,11 +93,16 @@ RUN --mount=type=cache,target=${TMP_DIR} \
     make -j$(nproc) check && \
     make install
 
+# starship
+RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y  && \
+    echo 'eval "$(starship init bash)"' >> /etc/bashrc
+
 # entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-# default command
+# default command and mount directory
+ENV WORKSPACE=/workspace
 WORKDIR $WORKSPACE
 CMD ["/bin/bash"]
