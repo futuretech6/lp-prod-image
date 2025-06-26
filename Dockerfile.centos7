@@ -7,31 +7,26 @@ ARG TARGETARCH
 ARG TMP_DIR=/tmp
 
 # cmake-src
-ARG CMAKE_MINOR_VERSION=3.27
 ARG CMAKE_VERSION=3.27.9
 RUN --mount=type=cache,target=${TMP_DIR} \
+    CMAKE_MINOR_VERSION=$(echo "${CMAKE_VERSION}" | cut -d'.' -f1-2) && \
     mkdir -p ${TMP_DIR}/cmake-src && \
     curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
         | tar -zx -C ${TMP_DIR}/cmake-src --strip-components=1
 
 # boost-src
-# ARG BOOST_VERSION=1.67.0
-# ARG BOOST_DASHED_VERSION=1_67_0
 ARG BOOST_VERSION=1.53.0
-ARG BOOST_DASHED_VERSION=1_53_0
 RUN --mount=type=cache,target=${TMP_DIR} \
+    BOOST_DASHED_VERSION=$(echo "${BOOST_VERSION}" | tr '.' '_') && \
     mkdir -p ${TMP_DIR}/boost-src && \
     curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
         | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
 
 # protobuf-src
-# ARG PROTOBUF_VERSION=3.7.1
-# ARG PROTOBUF_ZIP=protobuf-cpp-3.7.1.tar.gz
 ARG PROTOBUF_VERSION=2.5.0
-ARG PROTOBUF_ZIP=protobuf-2.5.0.tar.gz
 RUN --mount=type=cache,target=${TMP_DIR} \
     mkdir -p ${TMP_DIR}/protobuf-src && \
-    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/${PROTOBUF_ZIP} \
+    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
         | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
 # gosu
 ARG GOSU_VERSION=1.14
