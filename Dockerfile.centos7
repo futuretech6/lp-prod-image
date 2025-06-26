@@ -28,6 +28,7 @@ RUN --mount=type=cache,target=${TMP_DIR} \
     mkdir -p ${TMP_DIR}/protobuf-src && \
     curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
         | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
+
 # gosu
 ARG GOSU_VERSION=1.14
 RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" && \
@@ -54,8 +55,12 @@ RUN --mount=type=cache,target=/var/cache/yum \
     yum install -y openssl-devel git && \
 # boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
     yum install -y which python2-devel zlib-devel bzip2-devel && \
+# # pre-built boost-1.53.0 (python2-devel for `#include <python2.7/Python.h>`)
+#     yum install -y boost boost-devel python2-devel && \
 # protobuf dependencies
     yum install -y libtool && \
+# # pre-built protobuf-2.5.0 (cannot get pre-built gtest)
+#     yum install -y protobuf protobuf-devel protobuf-compiler && \
 # other tools
     yum install -y sudo && \
 # other dependencies of lp system
