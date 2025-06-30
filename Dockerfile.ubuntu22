@@ -1,0 +1,94 @@
+FROM --platform=$BUILDPLATFORM ubuntu:22.04
+
+ARG TARGETARCH TARGETOS
+
+# directory for installing dependencies
+ARG TMP_DIR=/tmp
+
+# apt install dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+# ca-certificates
+    apt-get update && apt-get --no-install-recommends install -y ca-certificates && \
+# repo: http -> https
+    find /etc/apt -type f -name "*.list" | xargs -I{} sed -i 's|http://|https://|g' {} && \
+    apt-get update && \
+    # apt-get upgrade -y && \
+    apt-get --no-install-recommends install -y \
+# installation tools
+    curl \
+# dev tools
+    gcc g++ make autoconf automake libtool \
+# pre-built cmake, git is for cmake module config
+    cmake git \
+# boost dependencies
+    python2-dev \
+    zlib1g-dev libbz2-dev \
+# protobuf dependencies
+    libtool \
+# other tools
+    sudo \
+# other dependencies of lp system
+    liburiparser-dev \
+    libelf-dev \
+    libgtest-dev \
+# other dependencies
+    libpcap-dev
+
+# boost-src
+ARG BOOST_VERSION=1.53.0
+RUN --mount=type=cache,target=${TMP_DIR} \
+    BOOST_DASHED_VERSION=$(echo "${BOOST_VERSION}" | tr '.' '_') && \
+    mkdir -p ${TMP_DIR}/boost-src && \
+    curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
+
+# protobuf-src
+ARG PROTOBUF_VERSION=2.5.0
+RUN --mount=type=cache,target=${TMP_DIR} \
+    mkdir -p ${TMP_DIR}/protobuf-src && \
+    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
+
+# gosu
+ARG GOSU_VERSION=1.14
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true
+
+# boost, zlib-devel and bzip2-devel is for v1.53.0
+WORKDIR ${TMP_DIR}/boost-src
+RUN --mount=type=cache,target=${TMP_DIR} \
+    ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
+    ./b2 install -j$(nproc) --quiet cxxflags="-std=c++11 -include cstdint"
+RUN [ -e /lib/libboost_python.so ] || ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
+
+# protobuf
+WORKDIR ${TMP_DIR}/protobuf-src
+RUN --mount=type=cache,target=${TMP_DIR} \
+    ./autogen.sh && \
+    ./configure && \
+    make -j$(nproc) && \
+    make -j$(nproc) check && \
+    make install
+
+# starship
+RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y
+RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
+RUN tee -a /etc/bash.bashrc <<"EOF"
+eval "$(starship init bash)"
+export STARSHIP_CONFIG=/etc/starship.toml
+EOF
+
+# update lib
+RUN ldconfig
+
+# entrypoint
+COPY entrypoint.debian.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+# default command and mount directory
+ENV WORKSPACE=/workspace
+WORKDIR $WORKSPACE
+CMD ["/bin/bash"]

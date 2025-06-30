@@ -102,7 +102,7 @@ export STARSHIP_CONFIG=/etc/starship.toml
 EOF
 
 # entrypoint
-COPY entrypoint.sh /entrypoint.sh
+COPY entrypoint.redhat.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
