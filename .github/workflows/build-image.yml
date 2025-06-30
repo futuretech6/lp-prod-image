@@ -31,7 +31,7 @@ jobs:
           docker buildx build \
             --progress=plain \
             --platform linux/amd64 \
-            --tag ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix:tag }} \
-            --file Dockerfile.${{ matrix:tag }} \
+            --tag ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix.tag }} \
+            --file Dockerfile.${{ matrix.tag }} \
             --push \
             .
