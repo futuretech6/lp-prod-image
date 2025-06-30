@@ -101,6 +101,9 @@ eval "$(starship init bash)"
 export STARSHIP_CONFIG=/etc/starship.toml
 EOF
 
+# update lib
+RUN ldconfig
+
 # entrypoint
 COPY entrypoint.redhat.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
