@@ -83,8 +83,16 @@ EOF
 # update lib
 RUN ldconfig
 
+# create user
+ARG USERNAME=prod
+ARG GROUPNAME=prod
+RUN groupadd ${GROUPNAME} || true && \
+    useradd -g ${GROUPNAME} -m -s /bin/bash ${USERNAME} || true && \
+    usermod -aG sudo "${USERNAME}" && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 # entrypoint
-COPY entrypoint.debian.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
