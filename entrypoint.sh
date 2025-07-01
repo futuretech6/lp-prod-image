@@ -10,8 +10,20 @@ GROUPNAME=prod
 CURRENT_UID=$(id -u "$USERNAME" 2>/dev/null)
 CURRENT_GID=$(id -g "$USERNAME" 2>/dev/null)
 
-# Check if TARGET_DIR is mounted
-if mountpoint -q "$TARGET_DIR"; then
+# Check if TARGET_DIR or any parent directory is mounted
+current_dir="$TARGET_DIR"
+is_mounted=false
+while [ "$current_dir" != "/" ]; do
+    if mountpoint -q "$current_dir"; then
+        echo "[*] $current_dir is a mount point."
+        is_mounted=true
+        break
+    fi
+    current_dir=$(dirname "$current_dir")
+done
+
+# After the loop, check the is_mounted flag
+if [ "$is_mounted" = true ]; then
     HOST_UID=$(stat -c "%u" $TARGET_DIR)
     HOST_GID=$(stat -c "%g" $TARGET_DIR)
 
