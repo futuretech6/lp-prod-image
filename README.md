@@ -33,7 +33,7 @@ To enable [Dev Containers](https://github.com/devcontainers/spec), add the follo
   "workspaceMount": "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind,consistency=cached",
   "workspaceFolder": "${localWorkspaceFolder}",
   "containerEnv": {
-    "WORKSPACE": "${localWorkspaceFolder}/.."
+    "WORKSPACE": "${localWorkspaceFolder}"
   },
   "runArgs": ["--entrypoint=/entrypoint.sh", "--network=host"],
   "remoteUser": "prod",

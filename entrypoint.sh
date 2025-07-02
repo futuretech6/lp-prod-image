@@ -42,4 +42,6 @@ else
     echo "[!] $TARGET_DIR is not mounted. Continuing as $USERNAME."
 fi
 
+cd $WORKSPACE
+
 exec gosu "$USERNAME" "$@"
