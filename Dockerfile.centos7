@@ -119,5 +119,4 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 # default command and mount directory
 ENV WORKSPACE=/workspace
-WORKDIR $WORKSPACE
 CMD ["/bin/bash"]

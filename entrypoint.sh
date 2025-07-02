@@ -42,6 +42,12 @@ else
     echo "[!] $TARGET_DIR is not mounted. Continuing as $USERNAME."
 fi
 
-cd $WORKSPACE
+if [ -d "$WORKSPACE" ]; then
+    cd "$WORKSPACE"
+else
+    mkdir -p /workspace
+    chown -R $USERNAME:$GROUPNAME /workspace
+    cd /workspace
+fi
 
 exec gosu "$USERNAME" "$@"
