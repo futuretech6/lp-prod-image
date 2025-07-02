@@ -1,17 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "[*] Current workspace is $WORKSPACE."
+DEFAULT_WORKSPACE=/workspace
+WORKSPACE=${WORKSPACE:-$DEFAULT_WORKSPACE}
 
-TARGET_DIR=${WORKSPACE:-/workspace}
+echo "[*] Current workspace is $WORKSPACE."
 
 USERNAME=prod
 GROUPNAME=prod
 CURRENT_UID=$(id -u "$USERNAME" 2>/dev/null)
 CURRENT_GID=$(id -g "$USERNAME" 2>/dev/null)
 
-# Check if TARGET_DIR or any parent directory is mounted
-current_dir="$TARGET_DIR"
+# Check if WORKSPACE or any parent directory is mounted
+current_dir="$WORKSPACE"
 is_mounted=false
 while [ "$current_dir" != "/" ]; do
     if mountpoint -q "$current_dir"; then
@@ -24,11 +25,11 @@ done
 
 # After the loop, check the is_mounted flag
 if [ "$is_mounted" = true ]; then
-    HOST_UID=$(stat -c "%u" $TARGET_DIR)
-    HOST_GID=$(stat -c "%g" $TARGET_DIR)
+    HOST_UID=$(stat -c "%u" $WORKSPACE)
+    HOST_GID=$(stat -c "%g" $WORKSPACE)
 
     if [ "$CURRENT_UID:$CURRENT_GID" != "$HOST_UID:$HOST_GID" ]; then
-        echo "[*] Current UID:GID ($CURRENT_UID:$CURRENT_GID) does not match host UID:GID ($HOST_UID:$HOST_GID) of $TARGET_DIR."
+        echo "[*] Current UID:GID ($CURRENT_UID:$CURRENT_GID) does not match host UID:GID ($HOST_UID:$HOST_GID) of $WORKSPACE."
         echo "    Changing user $USERNAME:$GROUPNAME to $HOST_UID:$HOST_GID..."
 
         usermod -u "$HOST_UID" "$USERNAME"
@@ -39,15 +40,15 @@ if [ "$is_mounted" = true ]; then
         echo "[*] User ID and group ID matched. Continuing as $USERNAME."
     fi
 else
-    echo "[!] $TARGET_DIR is not mounted. Continuing as $USERNAME."
+    echo "[!] $WORKSPACE is not mounted. Continuing as $USERNAME."
 fi
 
 if [ -d "$WORKSPACE" ]; then
     cd "$WORKSPACE"
 else
-    mkdir -p /workspace
-    chown -R $USERNAME:$GROUPNAME /workspace
-    cd /workspace
+    mkdir -p $DEFAULT_WORKSPACE
+    chown -R $USERNAME:$GROUPNAME $DEFAULT_WORKSPACE
+    cd $DEFAULT_WORKSPACE
 fi
 
 exec gosu "$USERNAME" "$@"
