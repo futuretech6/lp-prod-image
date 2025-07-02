@@ -35,6 +35,14 @@ To enable [Dev Containers](https://github.com/devcontainers/spec), add the follo
   "containerEnv": {
     "WORKSPACE": "${localWorkspaceFolder}"
   },
+  "remoteEnv": {
+    "http_proxy": "${localEnv:http_proxy}",
+    "https_proxy": "${localEnv:https_proxy}",
+    "no_proxy": "${localEnv:no_proxy}",
+    "HTTP_PROXY": "${localEnv:HTTP_PROXY}",
+    "HTTPS_PROXY": "${localEnv:HTTPS_PROXY}",
+    "NO_PROXY": "${localEnv:NO_PROXY}"
+  },
   "runArgs": ["--network=host"],
   "remoteUser": "prod",
   "customizations": {
