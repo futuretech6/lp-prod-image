@@ -83,6 +83,10 @@ EOF
 # update lib
 RUN ldconfig
 
+# set locale
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
 # create user
 ARG USERNAME=prod
 ARG GROUPNAME=prod
