@@ -35,14 +35,17 @@ To enable [Dev Containers](https://github.com/devcontainers/spec), add the follo
   "containerEnv": {
     "WORKSPACE": "${localWorkspaceFolder}"
   },
-  "runArgs": ["--entrypoint=/entrypoint.sh", "--network=host"],
+  "runArgs": ["--network=host"],
   "remoteUser": "prod",
   "customizations": {
     "vscode": {
       "extensions": [
         "llvm-vs-code-extensions.vscode-clangd",
         "vadimcn.vscode-lldb"
-      ]
+      ],
+      "settings": {
+        "http.proxy": "http://localhost:17890"
+      }
     }
   }
 }
