@@ -41,10 +41,10 @@ if [ "$is_mounted" = true ]; then
 
         echo "[*] Chowned."
     else
-        echo "[*] User ID and group ID matched. Continuing as $USERNAME."
+        echo "[*] User ID and group ID matched. Continuing as $USERNAME ($HOST_UID:$HOST_GID)."
     fi
 else
-    echo "[!] $WORKSPACE is not mounted. Continuing as $USERNAME."
+    echo "[!] $WORKSPACE is not mounted. Continuing as $USERNAME ($CURRENT_UID:$CURRENT_GID)."
 fi
 
 if [ -d "$WORKSPACE" ]; then
