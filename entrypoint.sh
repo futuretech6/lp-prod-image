@@ -35,7 +35,11 @@ if [ "$is_mounted" = true ]; then
         usermod -u "$HOST_UID" "$USERNAME"
         groupmod -g "$HOST_GID" "$GROUPNAME"
 
-        echo "[*] ID changed."
+        echo "[*] ID changed. Chowning \"/home/${USERNAME}\"..."
+
+        chown -R "${USERNAME}:${GROUPNAME}" "/home/${USERNAME}"
+
+        echo "[*] Chowned."
     else
         echo "[*] User ID and group ID matched. Continuing as $USERNAME."
     fi
