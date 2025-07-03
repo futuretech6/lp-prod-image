@@ -30,16 +30,13 @@ if [ "$is_mounted" = true ]; then
 
     if [ "$CURRENT_UID:$CURRENT_GID" != "$HOST_UID:$HOST_GID" ]; then
         echo "[*] Current UID:GID ($CURRENT_UID:$CURRENT_GID) does not match host UID:GID ($HOST_UID:$HOST_GID) of $WORKSPACE."
-        echo "    Changing user $USERNAME:$GROUPNAME to $HOST_UID:$HOST_GID..."
 
+        echo "[*] Changing user $USERNAME:$GROUPNAME to $HOST_UID:$HOST_GID and chowning \"/home/${USERNAME}/\"..."
         usermod -u "$HOST_UID" "$USERNAME"
         groupmod -g "$HOST_GID" "$GROUPNAME"
-
-        echo "[*] ID changed. Chowning \"/home/${USERNAME}\"..."
-
         chown -R "${USERNAME}:${GROUPNAME}" "/home/${USERNAME}"
 
-        echo "[*] Chowned."
+        echo "[*] ID Changed. Continuing as $USERNAME ($HOST_UID:$HOST_GID)."
     else
         echo "[*] User ID and group ID matched. Continuing as $USERNAME ($HOST_UID:$HOST_GID)."
     fi
