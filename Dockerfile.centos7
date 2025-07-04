@@ -46,6 +46,8 @@ RUN --mount=type=cache,target=/var/cache/yum \
     sed -e 's|^mirrorlist=|# mirrorlist=|g' \
         -e 's|^#\s*baseurl=http://mirror.centos.org|baseurl=https://vault.centos.org|g' \
         -i /etc/yum.repos.d/CentOS-*.repo && \
+# epel for gtest (still maintained)
+    yum install -y epel-release && \
 # devtoolset-7
     yum install -y devtoolset-7 && \
 # dev tools
