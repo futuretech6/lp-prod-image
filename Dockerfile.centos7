@@ -97,7 +97,8 @@ RUN --mount=type=cache,target=${TMP_DIR} \
 #     make install
 
 # starship
-RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y
+RUN --mount=type=cache,target=/tmp \
+    curl -sSf https://starship.rs/install.sh | sh -s -- -y
 RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
 RUN tee -a /etc/bashrc <<"EOF"
 eval "$(starship init bash)"
