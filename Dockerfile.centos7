@@ -14,20 +14,20 @@ RUN --mount=type=cache,target=${TMP_DIR} \
     curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
         | tar -zx -C ${TMP_DIR}/cmake-src --strip-components=1
 
-# boost-src
-ARG BOOST_VERSION=1.53.0
-RUN --mount=type=cache,target=${TMP_DIR} \
-    BOOST_DASHED_VERSION=$(echo "${BOOST_VERSION}" | tr '.' '_') && \
-    mkdir -p ${TMP_DIR}/boost-src && \
-    curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
-        | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
+# # boost-src
+# ARG BOOST_VERSION=1.53.0
+# RUN --mount=type=cache,target=${TMP_DIR} \
+#     BOOST_DASHED_VERSION=$(echo "${BOOST_VERSION}" | tr '.' '_') && \
+#     mkdir -p ${TMP_DIR}/boost-src && \
+#     curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
+#         | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
 
-# protobuf-src
-ARG PROTOBUF_VERSION=2.5.0
-RUN --mount=type=cache,target=${TMP_DIR} \
-    mkdir -p ${TMP_DIR}/protobuf-src && \
-    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
-        | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
+# # protobuf-src
+# ARG PROTOBUF_VERSION=2.5.0
+# RUN --mount=type=cache,target=${TMP_DIR} \
+#     mkdir -p ${TMP_DIR}/protobuf-src && \
+#     curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
+#         | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
 
 # gosu
 ARG GOSU_VERSION=1.14
@@ -56,14 +56,14 @@ RUN --mount=type=cache,target=/var/cache/yum \
     gcc-c++ make \
 # cmake dependencies, git is for cmake module config
     openssl-devel git \
-# boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
-    which python-devel zlib-devel bzip2-devel \
-# # pre-built boost-1.53.0 (python-devel for `#include <python2.7/Python.h>`)
-#     boost boost-devel python-devel \
-# protobuf dependencies
-    libtool \
-# # pre-built protobuf-2.5.0 (cannot get pre-built gtest)
-#     protobuf protobuf-devel protobuf-compiler \
+# # boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
+#     which python-devel zlib-devel bzip2-devel \
+# pre-built boost-1.53.0 (python-devel for `#include <python2.7/Python.h>`)
+    boost boost-devel python-devel \
+# # protobuf dependencies
+#     libtool \
+# pre-built protobuf-2.5.0 (cannot get pre-built gtest)
+    protobuf protobuf-devel protobuf-compiler \
 # other tools
     sudo \
 # other dependencies of lp system
@@ -80,21 +80,21 @@ RUN --mount=type=cache,target=${TMP_DIR} \
     make -j$(nproc) && \
     make -j$(nproc) install
 
-# boost, zlib-devel and bzip2-devel is for v1.53.0
-WORKDIR ${TMP_DIR}/boost-src
-RUN --mount=type=cache,target=${TMP_DIR} \
-    ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
-    ./b2 install -j$(nproc)
-RUN [ -e /lib/libboost_python.so ] || ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
+# # boost, zlib-devel and bzip2-devel is for v1.53.0
+# WORKDIR ${TMP_DIR}/boost-src
+# RUN --mount=type=cache,target=${TMP_DIR} \
+#     ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
+#     ./b2 install -j$(nproc)
+# RUN [ -e /lib/libboost_python.so ] || ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
 
-# protobuf
-WORKDIR ${TMP_DIR}/protobuf-src
-RUN --mount=type=cache,target=${TMP_DIR} \
-    ./autogen.sh && \
-    ./configure && \
-    make -j$(nproc) && \
-    make -j$(nproc) check && \
-    make install
+# # protobuf
+# WORKDIR ${TMP_DIR}/protobuf-src
+# RUN --mount=type=cache,target=${TMP_DIR} \
+#     ./autogen.sh && \
+#     ./configure && \
+#     make -j$(nproc) && \
+#     make -j$(nproc) check && \
+#     make install
 
 # starship
 RUN curl -sSf https://starship.rs/install.sh | sh -s -- -y
