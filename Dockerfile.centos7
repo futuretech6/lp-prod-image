@@ -48,29 +48,30 @@ RUN --mount=type=cache,target=/var/cache/yum \
         -i /etc/yum.repos.d/CentOS-*.repo && \
 # epel for gtest (still maintained)
     yum install -y epel-release && \
+# set skip_missing_names_on_install to ensure all packages are installed
+    yum install -y --setopt=skip_missing_names_on_install=False \
 # devtoolset-7
-    yum install -y devtoolset-7 && \
+    devtoolset-7 \
 # dev tools
-    # yum groupinstall -y "Development Tools" && \
-    yum install -y gcc-c++ make && \
+    gcc-c++ make \
 # cmake dependencies, git is for cmake module config
-    yum install -y openssl-devel git && \
+    openssl-devel git \
 # boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
-    yum install -y which python2-devel zlib-devel bzip2-devel && \
-# # pre-built boost-1.53.0 (python2-devel for `#include <python2.7/Python.h>`)
-#     yum install -y boost boost-devel python2-devel && \
+    which python-devel zlib-devel bzip2-devel \
+# # pre-built boost-1.53.0 (python-devel for `#include <python2.7/Python.h>`)
+#     boost boost-devel python-devel \
 # protobuf dependencies
-    yum install -y libtool && \
+    libtool \
 # # pre-built protobuf-2.5.0 (cannot get pre-built gtest)
-#     yum install -y protobuf protobuf-devel protobuf-compiler && \
+#     protobuf protobuf-devel protobuf-compiler \
 # other tools
-    yum install -y sudo && \
+    sudo \
 # other dependencies of lp system
-    yum install -y uriparser-devel \
-                   elfutils-libelf-devel \
-                   gtest-devel && \
+    uriparser-devel \
+    elfutils-libelf-devel \
+    gtest-devel \
 # other dependencies
-    yum install -y libpcap-devel
+    libpcap-devel
 
 # cmake, git is for cmake module config
 WORKDIR ${TMP_DIR}/cmake-src
