@@ -35,6 +35,15 @@ RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/downlo
     chmod +x /usr/local/bin/gosu && \
     gosu nobody true
 
+# starship
+RUN --mount=type=cache,target=/tmp \
+    curl -sSf https://starship.rs/install.sh | sh -s -- -y
+RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
+RUN tee -a /etc/bashrc <<"EOF"
+eval "$(starship init bash)"
+export STARSHIP_CONFIG=/etc/starship.toml
+EOF
+
 # yum install dependencies
 RUN --mount=type=cache,target=/var/cache/yum \
 # centos mirrors
@@ -95,15 +104,6 @@ RUN --mount=type=cache,target=${TMP_DIR} \
 #     make -j$(nproc) && \
 #     make -j$(nproc) check && \
 #     make install
-
-# starship
-RUN --mount=type=cache,target=/tmp \
-    curl -sSf https://starship.rs/install.sh | sh -s -- -y
-RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
-RUN tee -a /etc/bashrc <<"EOF"
-eval "$(starship init bash)"
-export STARSHIP_CONFIG=/etc/starship.toml
-EOF
 
 # update lib
 RUN ldconfig
