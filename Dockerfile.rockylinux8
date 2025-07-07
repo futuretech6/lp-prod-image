@@ -1,0 +1,121 @@
+FROM --platform=$BUILDPLATFORM rockylinux/rockylinux:8.10
+
+ARG TARGETARCH TARGETOS
+
+# directory for installing dependencies
+ARG TMP_DIR=/tmp
+
+# cmake-src
+ARG CMAKE_VERSION=3.27.9
+RUN --mount=type=cache,target=${TMP_DIR} \
+    CMAKE_MINOR_VERSION=$(echo "${CMAKE_VERSION}" | cut -d'.' -f1-2) && \
+    mkdir -p ${TMP_DIR}/cmake-src && \
+    curl -L https://cmake.org/files/v${CMAKE_MINOR_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/cmake-src --strip-components=1
+
+# boost-src
+ARG BOOST_VERSION=1.53.0
+RUN --mount=type=cache,target=${TMP_DIR} \
+    BOOST_DASHED_VERSION=$(echo "${BOOST_VERSION}" | tr '.' '_') && \
+    mkdir -p ${TMP_DIR}/boost-src && \
+    curl -L https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_DASHED_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/boost-src --strip-components=1
+
+# protobuf-src
+ARG PROTOBUF_VERSION=2.5.0
+RUN --mount=type=cache,target=${TMP_DIR} \
+    mkdir -p ${TMP_DIR}/protobuf-src && \
+    curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz \
+        | tar -zx -C ${TMP_DIR}/protobuf-src --strip-components=1
+
+# gosu
+ARG GOSU_VERSION=1.14
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true
+
+# dnf install dependencies
+RUN --mount=type=cache,target=/var/cache/dnf \
+# enable powertools for devtoolset
+    dnf install dnf-plugins-core -y && \
+    dnf config-manager --set-enabled powertools && \
+# epel for gtest (still maintained)
+    dnf install -y epel-release && \
+# actual install
+    dnf install -y \
+# devtoolset-7
+    # devtoolset-7 \
+# dev tools
+    gcc-c++ make \
+# cmake dependencies, git is for cmake module config
+    openssl-devel git \
+# boost dependencies, zlib-devel and bzip2-devel is for v1.53.0
+    which python2-devel zlib-devel bzip2-devel \
+# protobuf dependencies
+    libtool zlib \
+# other tools
+    sudo \
+# other dependencies of lp system
+    uriparser-devel \
+    elfutils-libelf-devel \
+    gtest-devel \
+# other dependencies
+    libpcap-devel
+
+# cmake, git is for cmake module config
+WORKDIR ${TMP_DIR}/cmake-src
+RUN --mount=type=cache,target=${TMP_DIR} \
+    ./bootstrap --parallel=$(nproc) && \
+    make -j$(nproc) && \
+    make -j$(nproc) install
+
+# boost, zlib-devel and bzip2-devel is for v1.53.0
+WORKDIR ${TMP_DIR}/boost-src
+RUN --mount=type=cache,target=${TMP_DIR} \
+    sed -i '1s/^/#include <cstdint>\n/' libs/atomic/src/lockpool.cpp
+RUN --mount=type=cache,target=${TMP_DIR} \
+    ./bootstrap.sh --with-python=/usr/bin/python2.7 --prefix=/usr/ && \
+    ./b2 install -j$(nproc)
+RUN [ -e /lib/libboost_python.so ] || ln -s /lib/libboost_python27.so /lib/libboost_python.so  # for v1.67.0
+
+# protobuf
+WORKDIR ${TMP_DIR}/protobuf-src
+RUN --mount=type=cache,target=${TMP_DIR} \
+    ./autogen.sh && \
+    ./configure && \
+    make -j$(nproc) && \
+    # make -j$(nproc) check && \
+    make install
+
+# starship
+RUN --mount=type=cache,target=/tmp \
+    curl -sSf https://starship.rs/install.sh | sh -s -- -y
+RUN /usr/local/bin/starship preset plain-text-symbols -o /etc/starship.toml
+RUN tee -a /etc/bashrc <<"EOF"
+eval "$(starship init bash)"
+export STARSHIP_CONFIG=/etc/starship.toml
+EOF
+
+# update lib
+RUN ldconfig
+
+# set locale
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# create user
+ARG USERNAME=prod
+ARG GROUPNAME=prod
+RUN groupadd ${GROUPNAME} || true && \
+    useradd -g ${GROUPNAME} -m -s /bin/bash ${USERNAME} || true && \
+    usermod -aG wheel "${USERNAME}" && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+# default command and mount directory
+ENV WORKSPACE=/workspace
+CMD ["/bin/bash"]
