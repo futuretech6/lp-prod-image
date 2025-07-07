@@ -39,11 +39,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWD }}
       - if: steps.filter.outputs.tagModified == 'true'
-        run: |
-          docker buildx build \
-            --progress=plain \
-            --platform linux/amd64 \
-            --tag ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix.tag }} \
-            --file Dockerfile.${{ matrix.tag }} \
-            --push \
-            .
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix.tag }}
+          file: Dockerfile.${{ matrix.tag }}
+          platforms: linux/amd64
+          progress: plain
+          push: true
