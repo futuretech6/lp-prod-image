@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: [centos7, ubuntu22, rockylinux8]
+        tag: [centos7, ubuntu22, rockylinux8, cicd]
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3

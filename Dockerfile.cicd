@@ -1,0 +1,79 @@
+FROM --platform=$BUILDPLATFORM ubuntu:22.04
+
+ARG TARGETARCH TARGETOS
+
+ARG LLVM_VERSION=18
+ARG GNUC_VERSION=11
+
+# apt install dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+# ca-certificates
+    apt-get update && apt-get --no-install-recommends install -y ca-certificates && \
+# repo: http -> https
+    find /etc/apt -type f -name "*.list" | xargs -I{} sed -i 's|http://|https://|g' {} && \
+    apt-get update && \
+    # apt-get upgrade -y && \
+    apt-get --no-install-recommends install -y \
+# for llvm key download
+    curl \
+# for pre-commit install
+    pipx \
+# for pre-commit run
+    git \
+# cc/cxx
+    gcc-${GNUC_VERSION} g++-${GNUC_VERSION}
+
+# gosu
+ARG GOSU_VERSION=1.14
+RUN curl -Lo /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/${GOSU_VERSION}/gosu-${TARGETARCH}" && \
+    chmod +x /usr/local/bin/gosu && \
+    gosu nobody true
+
+# INSTALL ROOT PKGs
+
+# to use `source`
+SHELL ["/bin/bash", "-c"]
+
+# llvm-18
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    source /etc/os-release && \
+    curl -sSL https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+    echo "deb [arch=$(dpkg --print-architecture)] https://apt.llvm.org/${VERSION_CODENAME} llvm-toolchain-${VERSION_CODENAME}-${LLVM_VERSION} main" | \
+        tee /etc/apt/sources.list.d/llvm-${LLVM_VERSION}.list && \
+    apt-get update && apt-get --no-install-recommends install -y clang-{format,tidy}-${LLVM_VERSION}
+
+# set locale
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# create user
+ARG USERNAME=prod
+ARG GROUPNAME=prod
+RUN groupadd ${GROUPNAME} || true && \
+    useradd -g ${GROUPNAME} -m -s /bin/bash ${USERNAME} || true && \
+    usermod -aG sudo "${USERNAME}" && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN touch /home/${USERNAME}/.hushlogin
+
+# INSTALL USER PKGs
+
+USER prod
+
+# install pipx packages
+RUN pipx ensurepath && \
+    pipx install pre-commit
+
+# FINAL CLEAN-UP
+
+USER root
+
+# entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+# default command and mount directory
+ENV WORKSPACE=/workspace
+CMD ["/bin/bash"]
