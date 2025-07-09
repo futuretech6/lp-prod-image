@@ -46,4 +46,6 @@ jobs:
           file: Dockerfile.${{ matrix.tag }}
           platforms: linux/amd64
           progress: plain
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix.tag }}-buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/lp-prod:${{ matrix.tag }}-buildcache
           push: true
